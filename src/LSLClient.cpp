@@ -33,7 +33,7 @@ using namespace ellsl;
 
 namespace
 {
-const int32 NCHANNELS = 17;
+const int32 NCHANNELS = 18;
 }
 
 LSLClient::LSLClient( )
@@ -208,6 +208,11 @@ LSLClient::openStream( int32 samplerate, std::unique_lock< std::mutex >&& lock )
         .append_child_value( "type", "PositionZ" )
         .append_child_value( "unit", "millimeters" )
         .append_child_value( "coordinate_system", "world-space" );
+
+    channels.append_child("channel")
+        .append_child_value("label", "HardwareTimestamp")
+        .append_child_value("type", "Timestamp")
+        .append_child_value("unit", "microseconds");
 
     lslInfo.desc( )
         .append_child( "acquisition" )
@@ -420,13 +425,10 @@ LSLClient::onGazeSample( const elapi::ELGazeSample& gazeSample )
     sample[ 16 ] = ( gazeSample.eyePositionRightZ == elapi::ELInvalidValue
                          ? std::numeric_limits< double >::quiet_NaN( )
                          : gazeSample.eyePositionRightZ );
-
-    // calc sample age
-    auto   timestamp        = gazeSample.timestampMicroSec;
-    double timestampSeconds = timestamp / 1000000.0;  // lsl expects time in seconds
+    sample[ 17 ] = gazeSample.timestampMicroSec;
 
     // push into LSL
-    m_outlet->push_sample( sample, timestampSeconds );
+    m_outlet->push_sample( sample );
 }
 
 std::unique_lock< std::mutex >
